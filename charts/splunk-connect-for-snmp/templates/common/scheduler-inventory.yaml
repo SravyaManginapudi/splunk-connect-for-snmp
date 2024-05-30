@@ -1,0 +1,15 @@
+{{- if eq (include "splunk-connect-for-snmp.polling.enable" .) "true" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "splunk-connect-for-snmp.name" . }}-inventory
+  labels:
+    {{- include "splunk-connect-for-snmp.scheduler.labels" . | nindent 4 }}
+data:
+  inventory.csv: |
+{{- if (.Values.poller).inventory }}
+{{ .Values.poller.inventory | indent 4 }}
+{{ else }}
+    address,port,version,community,secret,securityEngine,walk_interval,profiles,SmartProfiles,delete
+{{- end }}
+{{- end -}}

@@ -1,0 +1,154 @@
+#   ########################################################################
+#   Copyright 2021 Splunk Inc.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+#   ########################################################################
+
+name: ci-main
+on:
+  push:
+    branches:
+      - "main"
+      - "develop"
+      - "next"
+    tags-ignore:
+      - "v*"
+  pull_request:
+    branches:
+      - "main"
+      - "develop"
+      - "next"
+  workflow_call:
+    secrets:
+      FOSSA_API_KEY:
+        description: API token for FOSSA app
+        required: true
+jobs:
+  fossa-scan:
+    name: fossa
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: run fossa analyze and create report
+        run: |
+          curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh | bash
+          fossa analyze --debug
+          fossa report attribution --format text > /tmp/THIRDPARTY
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+      - name: upload THIRDPARTY file
+        uses: actions/upload-artifact@v4
+        with:
+          name: THIRDPARTY
+          path: /tmp/THIRDPARTY
+      - name: run fossa test
+        run: |
+          fossa test --debug
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+  semgrep-scan:
+    name: semgrep
+    runs-on: ubuntu-latest
+    if: (github.actor != 'dependabot[bot]')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: semgrep/semgrep-action@v1
+        with:
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - uses: pre-commit/action@v3.0.0
+  test-unit:
+    name: Test Unit Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - "3.10"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          poetry install
+      - name: Run Pytest with coverage
+        run: |
+          poetry run pytest --cov=./splunk_connect_for_snmp --cov-report=xml --junitxml=test-results/junit.xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          directory: ./coverage/reports/
+          env_vars: OS,PYTHON
+          fail_ci_if_error: true
+          path_to_write_report: ./coverage/codecov_report.txt
+          verbose: true
+      - uses: actions/upload-artifact@v4 # upload test results
+        if: success() || failure() # run this step even if previous step failed
+        with:
+          name: test-results-unit-python_${{ matrix.python-version }}
+          path: test-results/*
+
+  integration-tests-check:
+    name: Check if run integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Get commit message
+        id: get_commit_message
+        run: |
+          if [[ '${{ github.event_name }}' == 'push' ]]; then
+            echo ::set-output name=commit_message::$(git log --format=%B -n 1 HEAD)
+          elif [[ '${{ github.event_name }}' == 'pull_request' ]]; then
+            echo ::set-output name=commit_message::$(git log --format=%B -n 1 HEAD^2)
+          fi
+    outputs:
+      commit_message:
+        echo "${{ steps.get_commit_message.outputs.commit_message }}"
+
+  test-integration:
+    name: Run integration tests
+    needs:
+      - integration-tests-check
+    runs-on: ubuntu-latest
+    if: "contains(needs.integration-tests-check.outputs.commit_message, '[run-int-tests]')"
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4
+      - name: run install_microk8s.sh
+        run: |
+          sudo snap install microk8s --classic --channel=1.25/stable
+          sudo apt-get install snmp -y
+          sudo apt-get install python3-dev -y
+      - name: run automatic_setup.sh
+        run: integration_tests/automatic_setup.sh integration
+      - name: run tests
+        working-directory: integration_tests
+        run: |
+          poetry run pytest --splunk_host="localhost" --splunk_password="changeme2" --trap_external_ip="$(hostname -I | cut -d " " -f1)"
+
+
+

@@ -1,0 +1,2 @@
+Walk profiles no longer include IF-MIB family by default.
+If you've used this functionality before, please update the walk profile with ['IF-MIB'] varBind.

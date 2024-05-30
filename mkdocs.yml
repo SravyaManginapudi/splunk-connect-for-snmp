@@ -1,0 +1,78 @@
+site_name: Splunk Connect for SNMP (SC4SNMP)
+
+extra:
+  version:
+    provider: mike
+
+markdown_extensions:
+  - toc:
+      permalink: True
+  - smarty
+  - fenced_code
+  - sane_lists
+  - codehilite
+  - attr_list
+  - md_in_html
+
+plugins:
+    - search:
+        lang: en
+    - mkdocs-video:
+        is_video: True
+
+extra_javascript:
+   - javascripts/footer.js
+
+copyright: <p>Webpages built on GitHub Pages | <a href="https://docs.github.com/en/site-policy/github-terms/github-terms-of-service">Github Terms</a> | <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement">GitHub Privacy</a></p>
+
+theme:
+  name: "material"
+  palette:
+    primary: "black"
+    accent: "orange"
+  #favicon: "logo.png"
+#  logo: "logo.png"
+
+nav:
+  - Home: "index.md"
+  - Getting Started:
+      - Splunk Requirements: "gettingstarted/splunk-requirements.md"
+      - Platform Microk8s: "gettingstarted/mk8s/k8s-microk8s.md"
+      - Install Splunk OpenTelemetry Collector for Kubernetes: "gettingstarted/sck-installation.md"
+      - Install SC4SNMP: "gettingstarted/sc4snmp-installation.md"
+  - Configuration:
+      - Deployment: "configuration/deployment-configuration.md"
+      - Polling:
+        - Poller: "configuration/poller-configuration.md"
+        - Scheduler: "configuration/scheduler-configuration.md"
+        - Configuring Profiles: "configuration/configuring-profiles.md"
+        - Configuring Groups: "configuration/configuring-groups.md"
+        - Step by Step polling example: "configuration/step-by-step-poll.md"
+        - SNMP data format: "configuration/snmp-data-format.md"
+      - Traps: "configuration/trap-configuration.md"
+      - Worker: "configuration/worker-configuration.md"
+      - Mongo DB: "configuration/mongo-configuration.md"
+      - Redis: "configuration/redis-configuration.md"
+      - SNMPv3 configuration: "configuration/snmpv3-configuration.md"
+      - Splunk Infrastructure Monitoring: "configuration/sim-configuration.md"
+      - CoreDNS: "configuration/coredns-configuration.md"
+  - Offline Installation:
+      - Install Microk8s: "offlineinstallation/offline-microk8s.md"
+      - Install Splunk OpenTelemetry Collector for Kubernetes: "offlineinstallation/offline-sck.md"
+      - Install SC4SNMP: "offlineinstallation/offline-sc4snmp.md"
+  - GUI:
+      - Enable GUI: "gui/enable-gui.md"
+      - Configuring Profiles: "gui/profiles-gui.md"
+      - Configuring Groups: "gui/groups-gui.md"
+      - Configuring Inventory: "gui/inventory-gui.md"
+      - Apply changes: "gui/apply-changes.md"
+  - Lightweight installation: "small-environment.md"
+  - Planning: "planning.md"
+  - Security: "security.md"
+  - Request MIB: "mib-request.md"
+  - Upgrade SC4SNMP: "upgrade.md"
+  - Troubleshooting : "bestpractices.md"
+  - Releases: "releases.md"
+  - High Availability: ha.md
+  - Docker compose deployment: "docker-compose.md"
+
